@@ -48,8 +48,10 @@ const vertexShader = `
     vec3 formedColor = mix(deepGreen, emerald, smoothstep(0.12, 0.82, aRandom));
     formedColor = mix(formedColor, highlight, step(0.93, aRandom) * 0.55);
 
-    float sparkle = step(0.992, sin(uTime * 2.4 + aRandom * 180.0) * 0.5 + 0.5);
-    vColor = mix(chaosGold, formedColor, easedProgress) + sparkle * vec3(0.32, 0.26, 0.12);
+    float sparkleMask = smoothstep(0.90, 1.0, aRandom);
+    float sparkleWave = sin(uTime * 1.45 + aRandom * 180.0) * 0.5 + 0.5;
+    float sparkle = sparkleMask * smoothstep(0.18, 0.92, sparkleWave) * 0.32;
+    vColor = mix(chaosGold, formedColor, easedProgress) + sparkle * vec3(0.24, 0.19, 0.08);
     vAlpha = mix(0.72, 1.0, easedProgress);
   }
 `;

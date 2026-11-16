@@ -16,21 +16,26 @@ import { COLORS } from './sceneTheme';
 
 interface ExperienceProps {
   mode: TreeMode;
-  handPosition: { x: number; y: number; detected: boolean };
+  isMobile: boolean;
+  handPosition: {
+    current: { x: number; y: number; detected: boolean };
+  };
 }
 
-export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) => {
+export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition, isMobile }) => {
   const controlsRef = useRef<any>(null);
   const { size } = useThree();
-  const isCompact = size.width < 768;
-  const foliageCount = isCompact ? 6000 : 12000;
-  const ornamentCount = isCompact ? 260 : 420;
-  const lightCount = isCompact ? 480 : 900;
-  const snowCount = isCompact ? 480 : 900;
+  const isCompact = isMobile || size.width < 768;
+  const foliageCount = isCompact ? 3500 : 12000;
+  const ornamentCount = isCompact ? 180 : 420;
+  const lightCount = isCompact ? 240 : 900;
+  const snowCount = isCompact ? 200 : 900;
+  const sparkleCount = isCompact ? 80 : 260;
 
   // Update camera rotation based on hand position
   useFrame((_, delta) => {
-    if (controlsRef.current && handPosition.detected) {
+    const currentHandPosition = handPosition.current;
+    if (controlsRef.current && currentHandPosition.detected) {
       const controls = controlsRef.current;
       
       // Map hand position to spherical coordinates
@@ -38,11 +43,11 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) =>
       // y: 0 (top) to 1 (bottom) -> polar angle (vertical tilt)
       
       // Target azimuthal angle: increased range for larger rotation
-      const targetAzimuth = (handPosition.x - 0.5) * Math.PI * 3; // Increased from 2 to 3
+      const targetAzimuth = (currentHandPosition.x - 0.5) * Math.PI * 3; // Increased from 2 to 3
       
       // Adjust Y mapping so natural hand position gives best view
       // Offset Y so hand at 0.4-0.5 range gives centered view
-      const adjustedY = (handPosition.y - 0.2) * 2.0; // Increased sensitivity from 1.5 to 2.0
+      const adjustedY = (currentHandPosition.y - 0.2) * 2.0; // Increased sensitivity from 1.5 to 2.0
       const clampedY = Math.max(0, Math.min(1, adjustedY)); // Clamp to 0-1
       
       // Target polar angle: PI/4 to PI/1.8 (constrained vertical angle)
@@ -104,7 +109,7 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) =>
         penumbra={1} 
         intensity={1.75}
         color={COLORS.pearl}
-        castShadow 
+        castShadow={!isCompact}
       />
       <pointLight position={[-10, 5, -10]} intensity={0.9} color={COLORS.champagneGold} />
       <pointLight position={[0, 1, 8]} intensity={0.55} color={COLORS.velvetRed} />
@@ -119,26 +124,30 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) =>
         
         {/* Floor Reflections */}
         <ContactShadows 
-          opacity={0.7} 
+          opacity={isCompact ? 0.5 : 0.7}
           scale={30} 
           blur={2} 
           far={4.5} 
-          color="#000000" 
+          color="#000000"
+          frames={isCompact ? 1 : Infinity}
+          resolution={isCompact ? 256 : 512}
         />
       </group>
 
-      <Atmosphere snowCount={snowCount} />
+      <Atmosphere snowCount={snowCount} sparkleCount={sparkleCount} />
 
-      <EffectComposer enableNormalPass={false}>
-        <Bloom 
-          luminanceThreshold={0.9}
-          mipmapBlur 
-          intensity={1.15}
-          radius={0.52}
-        />
-        <Vignette eskil={false} offset={0.12} darkness={0.74} />
-        <Noise opacity={0.012} blendFunction={BlendFunction.OVERLAY} />
-      </EffectComposer>
+      {!isCompact && (
+        <EffectComposer enableNormalPass={false}>
+          <Bloom
+            luminanceThreshold={0.9}
+            mipmapBlur
+            intensity={1.15}
+            radius={0.52}
+          />
+          <Vignette eskil={false} offset={0.12} darkness={0.74} />
+          <Noise opacity={0.012} blendFunction={BlendFunction.OVERLAY} />
+        </EffectComposer>
+      )}
     </>
   );
 };

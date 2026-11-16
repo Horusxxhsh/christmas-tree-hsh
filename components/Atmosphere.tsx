@@ -6,9 +6,10 @@ import { COLORS } from './sceneTheme';
 
 interface AtmosphereProps {
   snowCount: number;
+  sparkleCount: number;
 }
 
-export const Atmosphere: React.FC<AtmosphereProps> = ({ snowCount }) => {
+export const Atmosphere: React.FC<AtmosphereProps> = ({ snowCount, sparkleCount }) => {
   const snowRef = useRef<THREE.Points>(null);
 
   const { positions, speeds, drifts } = useMemo(() => {
@@ -54,7 +55,7 @@ export const Atmosphere: React.FC<AtmosphereProps> = ({ snowCount }) => {
         <pointsMaterial color="#F4F1E8" size={0.045} transparent opacity={0.38} depthWrite={false} />
       </points>
       <Sparkles
-        count={260}
+        count={sparkleCount}
         scale={[18, 18, 18]}
         size={2.2}
         speed={0.18}

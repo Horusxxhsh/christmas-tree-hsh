@@ -55,11 +55,11 @@ export const TreeStar: React.FC<TreeStarProps> = ({ mode }) => {
     starRef.current.rotation.y = time * (isFormed ? 0.22 : 0.8);
     starRef.current.rotation.z = Math.sin(time * 0.55) * 0.055 + (1 - reveal) * time * 0.18;
 
-    const glint = Math.pow(Math.max(0, Math.sin(time * 1.25)), 12);
-    const intensity = 0.72 + reveal * 1.15 + glint * 1.3;
+    const glint = Math.pow(Math.max(0, Math.sin(time * 0.9)), 6);
+    const intensity = 0.72 + reveal * 1.15 + glint * 0.55;
     if (frontMaterialRef.current) frontMaterialRef.current.emissiveIntensity = intensity;
     if (sideMaterialRef.current) sideMaterialRef.current.emissiveIntensity = intensity * 0.72;
-    if (lightRef.current) lightRef.current.intensity = reveal * (1.4 + glint * 1.4);
+    if (lightRef.current) lightRef.current.intensity = reveal * (1.25 + glint * 0.35);
   });
 
   return (

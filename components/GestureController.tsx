@@ -25,6 +25,8 @@ export const GestureController: React.FC<GestureControllerProps> = ({ onModeChan
   useEffect(() => {
     let handLandmarker: HandLandmarker | null = null;
     let animationFrameId: number;
+    let lastDetectionTime = 0;
+    const DETECTION_INTERVAL_MS = 50;
 
     const setupMediaPipe = async () => {
       try {
@@ -148,7 +150,11 @@ export const GestureController: React.FC<GestureControllerProps> = ({ onModeChan
       if (!handLandmarker || !videoRef.current) return;
 
       const startTimeMs = performance.now();
-      if (videoRef.current.videoWidth > 0) { // Ensure video is ready
+      if (
+        startTimeMs - lastDetectionTime >= DETECTION_INTERVAL_MS &&
+        videoRef.current.videoWidth > 0
+      ) {
+        lastDetectionTime = startTimeMs;
         const result = handLandmarker.detectForVideo(videoRef.current, startTimeMs);
 
         if (result.landmarks && result.landmarks.length > 0) {

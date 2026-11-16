@@ -1,5 +1,5 @@
 
-import React, { useState, Suspense } from 'react';
+import React, { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader } from '@react-three/drei';
 import { Experience } from './components/Experience';
@@ -47,23 +47,37 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 
 export default function App() {
   const [mode, setMode] = useState<TreeMode>(TreeMode.FORMED);
-  const [handPosition, setHandPosition] = useState<{ x: number; y: number; detected: boolean }>({ x: 0.5, y: 0.5, detected: false });
+  const handPosition = useRef({ x: 0.5, y: 0.5, detected: false });
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(max-width: 767px), (pointer: coarse)').matches
+      : false
+  );
 
-  const handleHandPosition = (x: number, y: number, detected: boolean) => {
-    setHandPosition({ x, y, detected });
-  };
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 767px), (pointer: coarse)');
+    const updateMobileState = (event: MediaQueryListEvent) => setIsMobile(event.matches);
+
+    setIsMobile(mobileQuery.matches);
+    mobileQuery.addEventListener('change', updateMobileState);
+    return () => mobileQuery.removeEventListener('change', updateMobileState);
+  }, []);
+
+  const handleHandPosition = useCallback((x: number, y: number, detected: boolean) => {
+    handPosition.current = { x, y, detected };
+  }, []);
 
   return (
     <div className="w-full h-screen relative bg-gradient-to-b from-black via-[#001a0d] to-[#0a2f1e]">
       <ErrorBoundary>
         <Canvas
-          dpr={[1, 2]}
+          dpr={isMobile ? 1 : [1, 1.5]}
           camera={{ position: [0, 4, 20], fov: 45 }}
           gl={{ antialias: false, stencil: false, alpha: false }}
-          shadows
+          shadows={!isMobile}
         >
           <Suspense fallback={null}>
-            <Experience mode={mode} handPosition={handPosition} />
+            <Experience mode={mode} handPosition={handPosition} isMobile={isMobile} />
           </Suspense>
         </Canvas>
       </ErrorBoundary>
