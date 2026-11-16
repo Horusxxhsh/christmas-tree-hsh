@@ -3,11 +3,16 @@ import React, { useRef } from 'react';
 import { Environment, OrbitControls, ContactShadows } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Foliage } from './Foliage';
 import { Ornaments } from './Ornaments';
+import { FairyLights } from './FairyLights';
+import { Garlands } from './Garlands';
+import { TreeBase } from './TreeBase';
+import { Atmosphere } from './Atmosphere';
 import { TreeStar } from './TreeStar';
 import { TreeMode } from '../types';
+import { COLORS } from './sceneTheme';
 
 interface ExperienceProps {
   mode: TreeMode;
@@ -16,6 +21,12 @@ interface ExperienceProps {
 
 export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) => {
   const controlsRef = useRef<any>(null);
+  const { size } = useThree();
+  const isCompact = size.width < 768;
+  const foliageCount = isCompact ? 6000 : 12000;
+  const ornamentCount = isCompact ? 260 : 420;
+  const lightCount = isCompact ? 480 : 900;
+  const snowCount = isCompact ? 480 : 900;
 
   // Update camera rotation based on hand position
   useFrame((_, delta) => {
@@ -69,6 +80,8 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) =>
   });
   return (
     <>
+      <color attach="background" args={[COLORS.background]} />
+      <fog attach="fog" args={[COLORS.background, 24, 52]} />
       <OrbitControls 
         ref={controlsRef}
         enablePan={false} 
@@ -84,20 +97,24 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) =>
       {/* Lighting Setup for Maximum Luxury */}
       <Environment preset="lobby" background={false} blur={0.8} />
       
-      <ambientLight intensity={0.2} color="#004422" />
+      <ambientLight intensity={0.24} color={COLORS.deepGreen} />
       <spotLight 
         position={[10, 20, 10]} 
         angle={0.2} 
         penumbra={1} 
-        intensity={2} 
-        color="#fff5cc" 
+        intensity={1.75}
+        color={COLORS.pearl}
         castShadow 
       />
-      <pointLight position={[-10, 5, -10]} intensity={1} color="#D4AF37" />
+      <pointLight position={[-10, 5, -10]} intensity={0.9} color={COLORS.champagneGold} />
+      <pointLight position={[0, 1, 8]} intensity={0.55} color={COLORS.velvetRed} />
 
       <group position={[0, -5, 0]}>
-        <Foliage mode={mode} count={12000} />
-        <Ornaments mode={mode} count={600} />
+        <TreeBase mode={mode} />
+        <Foliage mode={mode} count={foliageCount} />
+        <Garlands mode={mode} />
+        <Ornaments mode={mode} count={ornamentCount} />
+        <FairyLights mode={mode} count={lightCount} />
         <TreeStar mode={mode} />
         
         {/* Floor Reflections */}
@@ -110,15 +127,17 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) =>
         />
       </group>
 
+      <Atmosphere snowCount={snowCount} />
+
       <EffectComposer enableNormalPass={false}>
         <Bloom 
-          luminanceThreshold={0.8} 
+          luminanceThreshold={0.9}
           mipmapBlur 
-          intensity={1.5} 
-          radius={0.6}
+          intensity={1.15}
+          radius={0.52}
         />
-        <Vignette eskil={false} offset={0.1} darkness={0.7} />
-        <Noise opacity={0.02} blendFunction={BlendFunction.OVERLAY} />
+        <Vignette eskil={false} offset={0.12} darkness={0.74} />
+        <Noise opacity={0.012} blendFunction={BlendFunction.OVERLAY} />
       </EffectComposer>
     </>
   );

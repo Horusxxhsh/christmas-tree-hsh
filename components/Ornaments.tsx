@@ -1,238 +1,170 @@
-import React, { useMemo, useRef, useState, useLayoutEffect } from 'react';
+import React, { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { TreeMode } from '../types';
+import { COLORS, TREE } from './sceneTheme';
 
 interface OrnamentsProps {
   mode: TreeMode;
   count: number;
 }
 
-type OrnamentType = 'ball' | 'gift' | 'light';
+type OrnamentType = 'ball' | 'bell' | 'drop';
 
 interface InstanceData {
   chaosPos: THREE.Vector3;
   targetPos: THREE.Vector3;
+  currentPos: THREE.Vector3;
   type: OrnamentType;
   color: THREE.Color;
   scale: number;
   speed: number;
+  seed: number;
   rotationOffset: THREE.Euler;
 }
 
 export const Ornaments: React.FC<OrnamentsProps> = ({ mode, count }) => {
-  // We use 3 separate InstancedMeshes for different geometries/materials to reduce draw calls
-  // but allow unique shapes.
   const ballsRef = useRef<THREE.InstancedMesh>(null);
-  const giftsRef = useRef<THREE.InstancedMesh>(null);
-  const lightsRef = useRef<THREE.InstancedMesh>(null);
-  
+  const bellsRef = useRef<THREE.InstancedMesh>(null);
+  const dropsRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const destination = useMemo(() => new THREE.Vector3(), []);
 
-  // Generate data once
-  const { ballsData, giftsData, lightsData } = useMemo(() => {
-    const _balls: InstanceData[] = [];
-    const _gifts: InstanceData[] = [];
-    const _lights: InstanceData[] = [];
-
-    const height = 11; // Slightly smaller than foliage
-    const maxRadius = 4.5;
-    
-    // Luxury Colors
-    const gold = new THREE.Color("#D4AF37");
-    const red = new THREE.Color("#8B0000"); // Dark Velvet Red
-    const emerald = new THREE.Color("#004422");
-    const whiteGold = new THREE.Color("#F5E6BF");
-    
-    const palette = [gold, red, gold, whiteGold];
+  const { ballsData, bellsData, dropsData } = useMemo(() => {
+    const balls: InstanceData[] = [];
+    const bells: InstanceData[] = [];
+    const drops: InstanceData[] = [];
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const palette = [
+      new THREE.Color(COLORS.champagneGold),
+      new THREE.Color(COLORS.champagneGold),
+      new THREE.Color(COLORS.velvetRed),
+      new THREE.Color(COLORS.pearl),
+      new THREE.Color(COLORS.antiqueGold),
+    ];
 
     for (let i = 0; i < count; i++) {
-      const rnd = Math.random();
-      let type: OrnamentType = 'ball';
-      if (rnd > 0.8) type = 'gift';
-      if (rnd > 0.9) type = 'light'; // Less lights as geometry, more via bloom
-
-      // 1. Target Position (Spiral with heavy density at bottom)
-      // Use power function to bias distribution toward bottom (lower yNorm values)
-      const yNorm = Math.pow(Math.random(), 2.5); // Heavy concentration at bottom
-      const y = yNorm * height + 0.5;
-      const rScale = (1 - yNorm);
-      const theta = y * 10 + Math.random() * Math.PI * 2; // Wind around
-      
-      // Push ornaments slightly outside the foliage radius
-      const r = maxRadius * rScale + (Math.random() * 0.5);
-      
+      const typeRoll = Math.random();
+      const type: OrnamentType = typeRoll < 0.68 ? 'ball' : typeRoll < 0.86 ? 'bell' : 'drop';
+      const yNorm = 0.06 + Math.random() * 0.82;
+      const angle = i * goldenAngle + Math.random() * 0.4;
+      const radius = TREE.radius * (1 - yNorm) * (0.91 + Math.random() * 0.13) + 0.08;
       const targetPos = new THREE.Vector3(
-        r * Math.cos(theta),
-        y,
-        r * Math.sin(theta)
+        Math.cos(angle) * radius,
+        yNorm * TREE.height,
+        Math.sin(angle) * radius,
       );
 
-      // 2. Chaos Position
-      const cR = 15 + Math.random() * 15;
-      const cTheta = Math.random() * Math.PI * 2;
-      const cPhi = Math.acos(2 * Math.random() - 1);
+      const chaosRadius = 15 + Math.random() * 15;
+      const chaosTheta = Math.random() * Math.PI * 2;
+      const chaosPhi = Math.acos(2 * Math.random() - 1);
       const chaosPos = new THREE.Vector3(
-        cR * Math.sin(cPhi) * Math.cos(cTheta),
-        cR * Math.sin(cPhi) * Math.sin(cTheta) + 5,
-        cR * Math.cos(cPhi)
+        chaosRadius * Math.sin(chaosPhi) * Math.cos(chaosTheta),
+        chaosRadius * Math.sin(chaosPhi) * Math.sin(chaosTheta) + 5,
+        chaosRadius * Math.cos(chaosPhi),
       );
-
-      const scale = type === 'light' ? 0.15 : (0.2 + Math.random() * 0.25);
-      const color = type === 'light' ? new THREE.Color("#FFFFAA") : palette[Math.floor(Math.random() * palette.length)];
 
       const data: InstanceData = {
         chaosPos,
         targetPos,
+        currentPos: mode === TreeMode.FORMED ? targetPos.clone() : chaosPos.clone(),
         type,
-        color,
-        scale,
-        speed: 0.5 + Math.random() * 1.5, // Random speed for physics feel
-        rotationOffset: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, 0)
+        color: palette[Math.floor(Math.random() * palette.length)].clone(),
+        scale: type === 'ball' ? 0.18 + Math.random() * 0.22 : 0.2 + Math.random() * 0.16,
+        speed: 1.1 + Math.random() * 1.25,
+        seed: Math.random() * 100,
+        rotationOffset: new THREE.Euler(Math.random() * 0.4, Math.random() * Math.PI * 2, Math.random() * 0.25),
       };
 
-      if (type === 'ball') _balls.push(data);
-      else if (type === 'gift') _gifts.push(data);
-      else _lights.push(data);
+      if (type === 'ball') balls.push(data);
+      else if (type === 'bell') bells.push(data);
+      else drops.push(data);
     }
 
-    return { ballsData: _balls, giftsData: _gifts, lightsData: _lights };
+    return { ballsData: balls, bellsData: bells, dropsData: drops };
   }, [count]);
 
   useLayoutEffect(() => {
-    // Set initial colors
-    [
-      { ref: ballsRef, data: ballsData },
-      { ref: giftsRef, data: giftsData },
-      { ref: lightsRef, data: lightsData }
-    ].forEach(({ ref, data }) => {
-      if (ref.current) {
-        data.forEach((d, i) => {
-          ref.current!.setColorAt(i, d.color);
-        });
-        ref.current.instanceColor!.needsUpdate = true;
-      }
-    });
-  }, [ballsData, giftsData, lightsData]);
+    const initialize = (ref: React.RefObject<THREE.InstancedMesh | null>, data: InstanceData[]) => {
+      if (!ref.current) return;
+      data.forEach((item, index) => {
+        dummy.position.copy(item.currentPos);
+        dummy.rotation.copy(item.rotationOffset);
+        dummy.scale.setScalar(item.scale);
+        dummy.updateMatrix();
+        ref.current!.setMatrixAt(index, dummy.matrix);
+        ref.current!.setColorAt(index, item.color);
+      });
+      ref.current.instanceMatrix.needsUpdate = true;
+      if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
+    };
+
+    initialize(ballsRef, ballsData);
+    initialize(bellsRef, bellsData);
+    initialize(dropsRef, dropsData);
+  }, [ballsData, bellsData, dropsData, dummy]);
 
   useFrame((state, delta) => {
     const isFormed = mode === TreeMode.FORMED;
     const time = state.clock.elapsedTime;
 
-    // Helper to update a mesh ref
-    const updateMesh = (ref: React.RefObject<THREE.InstancedMesh>, data: InstanceData[]) => {
+    const update = (ref: React.RefObject<THREE.InstancedMesh | null>, data: InstanceData[]) => {
       if (!ref.current) return;
 
-      let needsUpdate = false;
-
-      data.forEach((d, i) => {
-        // Interpolation Factor based on individual speed and global delta
-        // We use a simple approach: if formed, target is targetPos, else chaosPos
-        const dest = isFormed ? d.targetPos : d.chaosPos;
-        
-        // We actually want to lerp the CURRENT position to the DESTINATION
-        // But extracting current position from matrix is expensive every frame for all.
-        // Instead, we calculate "current" based on a virtual progress 0-1 driven by state.
-        
-        // To simulate "physics" (heavy/light), we don't store state per particle here (too complex for this snippet).
-        // Instead, we calculate position based on a time-dependent lerp factor.
-        
-        // However, a simple way to make it feel organic is:
-        // Position = Mix(Chaos, Target, SmoothStep(GlobalProgress * speed))
-        
-        // Let's use a sin wave derived from time for hover, but the main transition is driven by a hidden 'progress' value
-        // Since we don't have a global store for animation progress per particle, we approximate using the mode switch time.
-        // For a robust system, we'd use a spring library, but here we do manual lerping.
-
-        // Get current matrix position to lerp from? Too expensive.
-        // Let's assume a global transition variable `t` that goes 0->1 or 1->0.
-        // We will misuse the object's userdata or just calculate purely functional.
-        
-        // Functional approach:
-        // We need an accumulated value. Let's create a visual wobble.
-        
-        // NOTE: For true interactive physics, we'd use useSprings from react-spring/three, 
-        // but for 1000 instances, manual matrix manipulation is better.
-        // Here we will simply interpolate between the two static positions based on a "progress" variable
-        // that we track manually or approximate.
-        
-        // Let's read a custom progress from the dataset. 
-        // We'll augment the data object with a mutable `currentProgress` property in a closure if possible,
-        // but `data` is static.
-        
-        // Let's just use the `MathUtils.lerp` on the vectors directly inside the loop 
-        // by reading the matrix, lerping, writing back.
-        ref.current!.getMatrixAt(i, dummy.matrix);
-        dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
-        
-        const step = delta * d.speed;
-        dummy.position.lerp(dest, step);
-
-        // Add wobble when formed
-        if (isFormed && dummy.position.distanceTo(d.targetPos) < 0.5) {
-          dummy.position.y += Math.sin(time * 2 + d.chaosPos.x) * 0.002;
+      data.forEach((item, index) => {
+        destination.copy(isFormed ? item.targetPos : item.chaosPos);
+        if (!isFormed) {
+          const swirl = time * 0.12 + item.seed;
+          destination.x += Math.cos(swirl) * 0.5;
+          destination.z += Math.sin(swirl) * 0.5;
         }
 
-        // Rotation
-        if (d.type === 'gift') {
-           dummy.rotation.x += delta * 0.5;
-           dummy.rotation.y += delta * 0.2;
+        const step = 1 - Math.exp(-delta * item.speed);
+        item.currentPos.lerp(destination, step);
+        dummy.position.copy(item.currentPos);
+
+        if (isFormed) {
+          dummy.rotation.set(
+            item.rotationOffset.x + Math.sin(time * 0.7 + item.seed) * 0.035,
+            Math.atan2(item.targetPos.x, item.targetPos.z),
+            item.rotationOffset.z + Math.cos(time * 0.6 + item.seed) * 0.04,
+          );
         } else {
-           // Balls face out
-           dummy.lookAt(0, dummy.position.y, 0);
+          dummy.rotation.set(
+            item.rotationOffset.x + time * 0.32,
+            item.rotationOffset.y + time * 0.45,
+            item.rotationOffset.z + time * 0.18,
+          );
         }
 
-        dummy.scale.setScalar(d.scale);
-        if (d.type === 'light') {
-           // Pulsate lights
-           const pulse = 1 + Math.sin(time * 5 + d.chaosPos.y) * 0.3;
-           dummy.scale.multiplyScalar(pulse);
-        }
-
+        dummy.scale.setScalar(item.scale);
         dummy.updateMatrix();
-        ref.current!.setMatrixAt(i, dummy.matrix);
-        needsUpdate = true;
+        ref.current!.setMatrixAt(index, dummy.matrix);
       });
 
-      if (needsUpdate) ref.current.instanceMatrix.needsUpdate = true;
+      ref.current.instanceMatrix.needsUpdate = true;
     };
 
-    updateMesh(ballsRef, ballsData);
-    updateMesh(giftsRef, giftsData);
-    updateMesh(lightsRef, lightsData);
+    update(ballsRef, ballsData);
+    update(bellsRef, bellsData);
+    update(dropsRef, dropsData);
   });
 
   return (
     <>
-      {/* Balls: High Gloss Gold/Red */}
       <instancedMesh ref={ballsRef} args={[undefined, undefined, ballsData.length]}>
-        <sphereGeometry args={[1, 32, 32]} />
-        <meshStandardMaterial 
-          roughness={0.1} 
-          metalness={0.9} 
-          envMapIntensity={1.5}
-        />
+        <sphereGeometry args={[1, 16, 12]} />
+        <meshStandardMaterial color="white" roughness={0.14} metalness={0.88} envMapIntensity={1.35} />
       </instancedMesh>
 
-      {/* Gifts: Cubes with ribbons (simplified as cubes) */}
-      <instancedMesh ref={giftsRef} args={[undefined, undefined, giftsData.length]}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial 
-          roughness={0.3} 
-          metalness={0.5} 
-          color="#white" // Tinted by instance color
-        />
+      <instancedMesh ref={bellsRef} args={[undefined, undefined, bellsData.length]}>
+        <cylinderGeometry args={[0.52, 0.92, 1.25, 12, 1, false]} />
+        <meshStandardMaterial color="white" roughness={0.2} metalness={0.82} envMapIntensity={1.25} />
       </instancedMesh>
 
-      {/* Lights: Emissive small spheres */}
-      <instancedMesh ref={lightsRef} args={[undefined, undefined, lightsData.length]}>
-        <sphereGeometry args={[1, 8, 8]} />
-        <meshStandardMaterial 
-          emissive="white"
-          emissiveIntensity={2}
-          toneMapped={false}
-          color="white" // Tinted by instance color (yellowish)
-        />
+      <instancedMesh ref={dropsRef} args={[undefined, undefined, dropsData.length]}>
+        <octahedronGeometry args={[0.8, 0]} />
+        <meshStandardMaterial color="white" roughness={0.24} metalness={0.75} envMapIntensity={1.2} />
       </instancedMesh>
     </>
   );
