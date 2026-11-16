@@ -1,6 +1,6 @@
 
 import React, { useRef } from 'react';
-import { Environment, Lightformer, OrbitControls, ContactShadows } from '@react-three/drei';
+import { Environment, OrbitControls, ContactShadows } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -100,34 +100,11 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition, isMo
       />
 
       {/* Lighting Setup for Maximum Luxury */}
-      {!isCompact && (
-        <Environment resolution={256} frames={1} background={false} environmentIntensity={0.8}>
-          <Lightformer
-            form="rect"
-            intensity={4}
-            color={COLORS.pearl}
-            position={[0, 8, -10]}
-            rotation={[0, 0, 0]}
-            scale={[10, 5, 1]}
-          />
-          <Lightformer
-            form="rect"
-            intensity={3}
-            color={COLORS.champagneGold}
-            position={[-8, 2, 2]}
-            rotation={[0, Math.PI / 2, 0]}
-            scale={[8, 4, 1]}
-          />
-          <Lightformer
-            form="ring"
-            intensity={2}
-            color={COLORS.velvetRed}
-            position={[7, -1, 4]}
-            rotation={[0, -Math.PI / 2, 0]}
-            scale={4}
-          />
-        </Environment>
-      )}
+      <Environment
+        files="/hdri/st_fagans_interior_1k.hdr"
+        background={false}
+        environmentIntensity={isCompact ? 0.55 : 0.8}
+      />
       
       <ambientLight intensity={0.24} color={COLORS.deepGreen} />
       <spotLight 
