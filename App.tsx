@@ -28,8 +28,8 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
       return (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 text-[#D4AF37] font-serif p-8 text-center">
           <div>
-            <h2 className="text-2xl mb-2">Something went wrong</h2>
-            <p className="opacity-70">A resource failed to load (likely a missing image). Check the console for details.</p>
+            <h2 className="text-2xl mb-2">3D scene unavailable</h2>
+            <p className="opacity-70">The scene could not start on this device. Refresh the page or try again.</p>
             <button 
               onClick={() => this.setState({ hasError: false })}
               className="mt-4 px-4 py-2 border border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors"
