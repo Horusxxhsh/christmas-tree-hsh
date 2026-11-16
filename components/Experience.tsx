@@ -6,19 +6,15 @@ import { BlendFunction } from 'postprocessing';
 import { useFrame } from '@react-three/fiber';
 import { Foliage } from './Foliage';
 import { Ornaments } from './Ornaments';
-import { Polaroids } from './Polaroids';
 import { TreeStar } from './TreeStar';
 import { TreeMode } from '../types';
 
 interface ExperienceProps {
   mode: TreeMode;
   handPosition: { x: number; y: number; detected: boolean };
-  uploadedPhotos: string[];
-  twoHandsDetected: boolean;
-  onClosestPhotoChange?: (photoUrl: string | null) => void;
 }
 
-export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition, uploadedPhotos, twoHandsDetected, onClosestPhotoChange }) => {
+export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition }) => {
   const controlsRef = useRef<any>(null);
 
   // Update camera rotation based on hand position
@@ -102,7 +98,6 @@ export const Experience: React.FC<ExperienceProps> = ({ mode, handPosition, uplo
       <group position={[0, -5, 0]}>
         <Foliage mode={mode} count={12000} />
         <Ornaments mode={mode} count={600} />
-        <Polaroids mode={mode} uploadedPhotos={uploadedPhotos} twoHandsDetected={twoHandsDetected} onClosestPhotoChange={onClosestPhotoChange} />
         <TreeStar mode={mode} />
         
         {/* Floor Reflections */}

@@ -7,10 +7,9 @@ interface GestureControllerProps {
   onModeChange: (mode: TreeMode) => void;
   currentMode: TreeMode;
   onHandPosition?: (x: number, y: number, detected: boolean) => void;
-  onTwoHandsDetected?: (detected: boolean) => void;
 }
 
-export const GestureController: React.FC<GestureControllerProps> = ({ onModeChange, currentMode, onHandPosition, onTwoHandsDetected }) => {
+export const GestureController: React.FC<GestureControllerProps> = ({ onModeChange, currentMode, onHandPosition }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -42,7 +41,7 @@ export const GestureController: React.FC<GestureControllerProps> = ({ onModeChan
             delegate: "GPU"
           },
           runningMode: "VIDEO",
-          numHands: 2
+          numHands: 1
         });
 
         startWebcam();
@@ -153,12 +152,6 @@ export const GestureController: React.FC<GestureControllerProps> = ({ onModeChan
         const result = handLandmarker.detectForVideo(videoRef.current, startTimeMs);
 
         if (result.landmarks && result.landmarks.length > 0) {
-          // Check if two hands are detected
-          const twoHandsDetected = result.landmarks.length >= 2;
-          if (onTwoHandsDetected) {
-            onTwoHandsDetected(twoHandsDetected);
-          }
-
           // Draw all detected hands at once
           drawAllHands(result.landmarks);
           
@@ -170,9 +163,6 @@ export const GestureController: React.FC<GestureControllerProps> = ({ onModeChan
             setHandPos(null); // Clear hand position when no hand detected
             if (onHandPosition) {
               onHandPosition(0.5, 0.5, false); // No hand detected
-            }
-            if (onTwoHandsDetected) {
-              onTwoHandsDetected(false);
             }
             // Clear canvas when no hand detected
             if (canvasRef.current) {

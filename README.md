@@ -11,7 +11,6 @@ Gemini 3 in Google AI Studio and Claude 4.5 Sonnet in Cursor:
 核心逻辑与架构： 状态机： 包含 CHAOS（混沌散落）和 FORMED（聚合成树）两种状态，并在两者间动态变形。 双坐标系统 (Dual-Position System)： 所有元素（针叶、装饰物）初始化时需分配两个坐标： ChaosPosition：球形空间内的随机坐标。 TargetPosition：构成树木圆锥形状的目标坐标。
 TargetPosition：构成树木圆锥形状的目标坐标。 在 useFrame 中根据进度 在两者间进行插值 (Lerp)。具体实现细节： 针叶系统 (Foliage)： 使用 THREE.Points 和自定义 ShaderMaterial 渲染大量粒子。 装饰物 (Ornaments)： 使用 InstancedMesh 优化渲染。分为各种颜色的礼物盒（重）、各种颜色的彩球（轻）、各种点缀灯光（极轻），赋予不同的物理推力权重。使用 Lerp 实现丝滑的归位动画。 后期处理： 启用 Bloom 效果（阈值 0.8，强度 1.2），营造“金色光晕”。
 场景配置： 摄像机位置 [0, 4, 20]，使用 Lobby HDRI 环境光。
-在里面加上很多拍立得样式的照片的装饰。
 使用摄像头图像检测手势，手势张开代表 unleash，闭上就变回圣诞树。通过手的移动可以调整视角。
 ```
 
@@ -33,38 +32,12 @@ TargetPosition：构成树木圆锥形状的目标坐标。 在 useFrame 中根�
    npm run dev
    ```
    
-   > 📝 Note: Local dev mode uses localStorage for sharing (works in same browser only)
-   > For full cloud sharing, see step 4
-
-4. **Configure Cloudflare (Optional - for cloud sharing):**
-   - Follow the detailed guide in `cloudflare-setup.md`
-   - Copy `env.example` to `.env.local` and fill in your Cloudflare credentials
-   - Use `npm run dev:vercel` to test with full Vercel environment
-
-5. **Open your browser:**
+4. **Open your browser:**
    - Navigate to `http://localhost:3010`
    - Allow camera access for gesture control
-   - Click "上传照片" to upload your photos
 
 
 ## 🎯 Usage
-
-### Photo Upload & Sharing
-
-1. **Upload Photos:**
-   - Click "上传照片" button to select up to 22 images
-   - Photos will appear as polaroids on the Christmas tree
-
-2. **Generate Share Link:**
-   - After uploading photos, click "生成分享链接"
-   - Wait 2-3 seconds for the upload to complete
-   - Copy the generated link and share with friends
-
-3. **View Shared Photos:**
-   - Friends can open the share link in any browser
-   - Photos will automatically load on the Christmas tree
-   - No login or app installation required
-   - Links expire after 30 days
 
 ### Gesture Controls
 
@@ -93,17 +66,9 @@ When no hand is detected, you can:
 - MediaPipe for hand gesture detection
 - Tailwind CSS for styling
 
-### Backend (Photo Sharing)
-- Vercel Serverless Functions
-- Cloudflare R2 (S3-compatible object storage)
-- Cloudflare KV (key-value storage)
-- AWS SDK S3 Client for R2 integration
-
 ### Features
 - Hand gesture control via webcam
 - Dynamic state transitions (CHAOS ↔ FORMED)
-- Photo upload and cloud sharing
-- Temporary share links (30-day expiration)
 - Instanced rendering for performance
 - Bloom and post-processing effects
 
